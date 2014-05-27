@@ -23,6 +23,10 @@ void ofApp::setup(){
     coreMotion.setupAccelerometer();
     coreMotion.setupAttitude(CMAttitudeReferenceFrameXMagneticNorthZVertical);
     
+    grabber.initGrabber(ofGetWidth(), ofGetHeight(), OF_PIXELS_BGRA);
+	tex.allocate(grabber.getWidth(), grabber.getHeight(), GL_RGB);
+	
+	pix = new unsigned char[ (int)( grabber.getWidth() * grabber.getHeight() * 3.0) ];
     
 }
 
@@ -32,19 +36,35 @@ void ofApp::update(){
 	heading = ofLerpDegrees(heading, -coreLocation->getTrueHeading(), 0.7);
     
     coreMotion.update();
-
+    
+    
+    grabber.update();
+	
+	unsigned char * src = grabber.getPixels();
+	int totalPix = grabber.getWidth() * grabber.getHeight() * 3;
+	
+	for(int k = 0; k < totalPix; k+= 3){
+		pix[k  ] = 255 - src[k];
+		pix[k+1] = 255 - src[k+1];
+		pix[k+2] = 255 - src[k+2];
+	}
+	
+	tex.loadData(pix, grabber.getWidth(), grabber.getHeight(), GL_RGB);
     
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-	ofSetColor(54);
+	ofSetColor(100);
+    grabber.draw(0, 0);
+    ofSetColor(255);
+	//tex.draw(0, 0, tex.getWidth(), tex.getHeight());
     
     //float angle = 180 - RAD_TO_DEG * atan2( ofxAccelerometer.getForce().y, ofxAccelerometer.getForce().x );
     
-	ofDrawBitmapString("Kompass", 8, 20);
+	//ofDrawBitmapString("Kompass", 8, 20);
 
-	ofEnableAlphaBlending();	
+	/*ofEnableAlphaBlending();
 	ofSetColor(255);
 		ofPushMatrix();
 		ofTranslate(160, 220, 0);
@@ -53,53 +73,53 @@ void ofApp::draw(){
 	ofPopMatrix();
 	
 	ofSetColor(255);
-	arrowImg.draw(160, 220);	
+	arrowImg.draw(160, 220);*/
 
-	ofSetColor(54);
-	ofDrawBitmapString("LAT: ", 8, ofGetHeight() - 8);
-	ofDrawBitmapString("LON: ", ofGetWidth() - 108, ofGetHeight() - 8);
+	//ofSetColor(54);
+	//ofDrawBitmapString("LAT: ", 8, ofGetHeight() - 8);
+	//ofDrawBitmapString("LON: ", ofGetWidth() - 108, ofGetHeight() - 8);
 
 
     // attitude- quaternion
-    ofDrawBitmapStringHighlight("Attitude: (quaternion x,y,z,w)", 20, 25);
-    ofSetColor(0);
+    //ofDrawBitmapStringHighlight("Attitude: (quaternion x,y,z,w)", 20, 25);
+    //ofSetColor(0);
     ofQuaternion quat = coreMotion.getQuaternion();
-    ofDrawBitmapString(ofToString(quat.x(),3), 20, 50);
+    /*ofDrawBitmapString(ofToString(quat.x(),3), 20, 50);
     ofDrawBitmapString(ofToString(quat.y(),3), 90, 50);
     ofDrawBitmapString(ofToString(quat.z(),3), 160, 50);
-    ofDrawBitmapString(ofToString(quat.w(),3), 230, 50);
+    ofDrawBitmapString(ofToString(quat.w(),3), 230, 50);*/
     
     // attitude- roll,pitch,yaw
-    ofDrawBitmapStringHighlight("Attitude: (roll,pitch,yaw)", 20, 75);
-    ofSetColor(0);
+    //ofDrawBitmapStringHighlight("Attitude: (roll,pitch,yaw)", 20, 75);
+    /*ofSetColor(0);
     ofDrawBitmapString(ofToString(coreMotion.getRoll(),3), 20, 100);
     ofDrawBitmapString(ofToString(coreMotion.getPitch(),3), 120, 100);
-    ofDrawBitmapString(ofToString(coreMotion.getYaw(),3), 220, 100);
+    ofDrawBitmapString(ofToString(coreMotion.getYaw(),3), 220, 100);*/
     
     // accelerometer
     ofVec3f a = coreMotion.getAccelerometerData();
-    ofDrawBitmapStringHighlight("Accelerometer: (x,y,z)", 20, 125);
+    /*ofDrawBitmapStringHighlight("Accelerometer: (x,y,z)", 20, 125);
     ofSetColor(0);
     ofDrawBitmapString(ofToString(a.x,3), 20, 150);
     ofDrawBitmapString(ofToString(a.y,3), 120, 150);
-    ofDrawBitmapString(ofToString(a.z,3), 220, 150);
+    ofDrawBitmapString(ofToString(a.z,3), 220, 150);*/
     
     // gyroscope
     ofVec3f g = coreMotion.getGyroscopeData();
-    ofDrawBitmapStringHighlight("Gyroscope: (x,y,z)", 20, 175);
+    /*ofDrawBitmapStringHighlight("Gyroscope: (x,y,z)", 20, 175);
     ofSetColor(0);
     ofDrawBitmapString(ofToString(g.x,3), 20, 200 );
     ofDrawBitmapString(ofToString(g.y,3), 120, 200 );
-    ofDrawBitmapString(ofToString(g.z,3), 220, 200 );
+    ofDrawBitmapString(ofToString(g.z,3), 220, 200 );*/
     
     // magnetometer
     ofVec3f m = coreMotion.getMagnetometerData();
-    ofDrawBitmapStringHighlight("Magnetometer: (x,y,z)", 20, 225);
+    /*ofDrawBitmapStringHighlight("Magnetometer: (x,y,z)", 20, 225);
     ofSetColor(0);
     ofDrawBitmapString(ofToString(m.x,3), 20, 250);
     ofDrawBitmapString(ofToString(m.y,3), 120, 250);
     ofDrawBitmapString(ofToString(m.z,3), 220, 250);
-    
+    */
     
     ofPushMatrix();
     ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
@@ -122,14 +142,14 @@ void ofApp::draw(){
     
     ofNoFill();
 	ofDrawBox(0, 0, 0, 220); // OF 0.74: ofBox(0, 0, 0, 220);
-    ofDrawAxis(100);
+    //ofDrawAxis(100);
     ofPopMatrix();
     
-    ofFill();
-    ofDrawBitmapString(ofToString("Double tap to reset \nAttitude reference frame"), 20, ofGetHeight() - 50);
+    //ofFill();
+    //ofDrawBitmapString(ofToString("Double tap to reset \nAttitude reference frame"), 20, ofGetHeight() - 50);
     
     
-	if(hasGPS){
+	/*if(hasGPS){
 		//cout<<coreLocation->getLatitude()<<" | "<< coreLocation->getLatitude() <<endl;
 		
 		ofSetHexColor(0x009d88);
@@ -138,7 +158,7 @@ void ofApp::draw(){
 		ofSetHexColor(0x0f7941d);
 		ofDrawBitmapString(ofToString(coreLocation->getLongitude()), (ofGetWidth() - 108) + 33, ofGetHeight() - 8);
 		
-	}
+	}*/
 }
 
 //--------------------------------------------------------------

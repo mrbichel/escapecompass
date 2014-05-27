@@ -25,11 +25,14 @@ class ofApp : public ofxiOSApp{
         void gotMemoryWarning();
         void deviceOrientationChanged(int newOrientation);
     
-    
         ofxCoreMotion coreMotion;
         ofxiOSCoreLocation * coreLocation;
-	
-        float heading;    
+    
+        ofVideoGrabber grabber;
+        ofTexture tex;
+        unsigned char * pix;
+    
+        float heading;
         
 	
         bool hasCompass;
