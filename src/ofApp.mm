@@ -5,8 +5,14 @@ void ofApp::setup(){
     
     gratio = 1.61803398875;
     
+    ofEnableDepthTest();
+    ofEnableAlphaBlending();
+    glEnable(GL_DEPTH_TEST);
+    
 	ofBackground(225, 225, 225);
     ofEnableAntiAliasing();
+    
+    ofRegisterURLNotification(this);
     
 	// initialize the accelerometer
 	ofxAccelerometer.setup();
@@ -34,13 +40,15 @@ void ofApp::setup(){
     
     font.loadFont("Arial.ttf", 24);
     
+    waiting = false;
+    ofRegisterURLNotification(this);
 }
 
 
 //--------------------------------------------------------------
 void ofApp::update(){	
-	heading = ofLerpDegrees(heading, -coreLocation->getTrueHeading(), 0.7);
-    
+	heading = coreLocation->getTrueHeading(); // ofLerpDegrees(heading, -coreLocation->getTrueHeading(), 0.7);
+    //cout<<coreLocation->getTrueHeading()<<endl;
     coreMotion.update();
     
     
@@ -57,214 +65,177 @@ void ofApp::update(){
 	
 	tex.loadData(pix, grabber.getWidth(), grabber.getHeight(), GL_RGB);*/
     
+    //myLatLng = ofVec2f(coreLocation->getLatitude(), coreLocation->getLongitude());
+    myLatLng.set(55.5866,13.0316);
+    
+    if(lastUpdateHeading > heading + 2 || lastUpdateHeading < heading -2) {
+        
+        if(!waiting) {
+            lastUpdateHeading = heading;
+        
+            string request = "http://halfdanj.local:3000/api/route/" + ofToString(myLatLng.x) + "/" + ofToString(myLatLng.y) + "/" + ofToString(heading * DEG_TO_RAD);
+            ofLoadURLAsync(request);
+        cout<<request<<endl;
+            lastRequest = ofGetElapsedTimeMillis();
+            waiting = true;
+        }
+        
+    }
 }
 
-void compassbox() {
-    ofFill();
-    ofSetColor(255);
-    ofDrawBox(0, 0, 0, 20, 20, 2);
-    ofSetColor(0);
-    ofNoFill();
-    ofDrawBox(0, 0, 0, 20, 20, 2);
+void ofApp::urlResponse(ofHttpResponse & response) {
+    
+    if (response.status==200) {
+        waiting = false;
+        
+        result.parse(ofToString(response.data));
+        
+        result.isArray();
+        cout<<"data received"<<endl;
+        //cout<<result.getRawString()<<endl;
+
+        PPath * p = new PPath();
+        p->duration =result["route"]["duration"].asInt();
+        
+        p->radius =result["radius"].asFloat();
+        
+        
+        if(result["route"]["legs"].size() > 0) {
+        for (int i=0;i<result["route"]["legs"].size(); i++) {
+            
+            PPathLeg leg;
+            
+            for (int d=0;d<result["route"]["legs"][i]["decodedLine"].size(); d++) {
+                
+                PPoint po;
+                
+                po.latlng = ofVec2f(
+                        result["route"]["legs"][i]["decodedLine"][d][0].asFloat(),
+                        result["route"]["legs"][i]["decodedLine"][d][1].asFloat()
+                        );
+                
+                leg.points.push_back(po);
+            }
+            
+            p->legs.push_back(leg);
+        }
+        
+        paths.push_back(p);
+        ActivePath = p;
+        
+        if(paths.size() > pathHistory) {
+            paths.erase(paths.begin());
+        }
+        }
+        
+    } else {
+        cout << response.status << " " << response.error << endl;
+        if (response.status != -1) waiting = false;
+    }
+    
+}
+
+// may not work
+ofVec2f LatLon(ofVec3f position)
+{
+    float sphereRadius = 6378.1; // radius of earth
+    float x = (float)acos(position.y * DEG_TO_RAD / sphereRadius); //theta
+    float y = (float)atan(position.x * DEG_TO_RAD / position.z); //phi
+    return ofVec2f(x, y);
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    
-    ofEnableDepthTest();
-    glEnable(GL_DEPTH_TEST);
+
     
     ofQuaternion quat = coreMotion.getQuaternion();
-    ofVec3f g = coreMotion.getGyroscopeData();
-    ofVec3f m = coreMotion.getMagnetometerData();
+    //ofVec3f g = coreMotion.getGyroscopeData();
+    //ofVec3f m = coreMotion.getMagnetometerData();
     
     // quaternion rotations
     float angle;
     ofVec3f axis;//(0,0,1.0f);
     quat.getRotate(angle, axis);// rotate with quaternion
     
-    
-	ofSetColor(100);
-    //grabber.draw(0, 0);
-    ofSetColor(255);
-	//tex.draw(0, 0, tex.getWidth(), tex.getHeight());
-    
-    //float angle = 180 - RAD_TO_DEG * atan2( ofxAccelerometer.getForce().y, ofxAccelerometer.getForce().x );
-    
-	//ofDrawBitmapString("Kompass", 8, 20);
-    
     ofSetRectMode(OF_RECTMODE_CENTER);
-    float cradius = 60;
-    ofEnableAlphaBlending();
+    float cradius = ofGetWidth() - (ofGetWidth()/gratio);
 	ofSetColor(255);
 		ofPushMatrix();
 		ofTranslate(ofGetWidth()/2, ofGetHeight()-(ofGetHeight()/gratio), 0);
-		ofRotateZ(heading);
+		ofRotateZ(-heading);
     
         ofFill();
     
     ofPushMatrix();
-    ofTranslate(cradius, 0,0);
-    ofRotateZ(-heading);
-    ofRotate(angle, axis.x, -axis.y, axis.z);
-    
-    ofSetColor(0);
-    ofNoFill();
-    ofDrawBox(0, 0, 0, 21, 21, 21);
-    
-    ofFill();
-    ofSetColor(255);
-    ofDrawBox(0, 0, 0, 20, 20, 20);
-
-    ofPopMatrix();
-    
-    ofPushMatrix();
-    ofTranslate(-cradius, 0,0);
-    ofRotateZ(-heading);
-    ofRotate(angle, axis.x, -axis.y, axis.z);
-    
-    ofSetColor(0);
-    ofNoFill();
-    ofDrawBox(0, 0, 0, 21, 21, 21);
-    
-    ofFill();
-    ofSetColor(255);
-    ofDrawBox(0, 0, 0, 20, 20, 20);
-
-    ofPopMatrix();
-    
-    ofPushMatrix();
-    ofTranslate(0, cradius,0);
-    ofRotateZ(-heading);
-    ofRotate(angle, axis.x, -axis.y, axis.z);
-    
-    ofSetColor(0);
-    ofNoFill();
-    ofDrawBox(0, 0, 0, 21, 21, 21);
-    
-    ofFill();
-    ofSetColor(255);
-    ofDrawBox(0, 0, 0, 20, 20, 20);
-
-    ofPopMatrix();
-    
-    ofPushMatrix();
     ofTranslate(0, -cradius,0);
-    ofRotateZ(-heading);
-    ofRotate(angle, axis.x, -axis.y, axis.z);
+    
+    ofFill();
+    ofSetColor(255,0,0);
+    ofDrawBox(0, 0, 0, 20, 20, 20);
     
     ofSetColor(0);
     ofNoFill();
     ofDrawBox(0, 0, 0, 21, 21, 21);
-    
-    ofFill();
-    ofSetColor(255);
-    ofDrawBox(0, 0, 0, 20, 20, 20);
 
     ofPopMatrix();
     
-
 	ofPopMatrix();
 	
 	//arrowImg.draw(160, 220);
-    float aw = 4;
-    ofSetColor(0);
     
+    /*float aw = 8;
+    ofSetColor(100);
     ofFill();
-    
-    
     float far = ofMap(coreMotion.getPitch(), 0, PI, 100, 600);;
     ofDrawBox(ofGetWidth()/2, ofGetHeight()-(ofGetHeight()/gratio), 0, aw, far, 2);
-    ofSetColor(255);
-
-    
-    //ofSetColor(54);
-	//ofDrawBitmapString("LAT: ", 8, ofGetHeight() - 8);
-	//ofDrawBitmapString("LON: ", ofGetWidth() - 108, ofGetHeight() - 8);
-
-    // accelerometer
-    ofVec3f a = coreMotion.getAccelerometerData();
-    /*ofDrawBitmapStringHighlight("Accelerometer: (x,y,z)", 20, 125);
-    ofSetColor(0);
-    ofDrawBitmapString(ofToString(a.x,3), 20, 150);
-    ofDrawBitmapString(ofToString(a.y,3), 120, 150);
-    ofDrawBitmapString(ofToString(a.z,3), 220, 150);*/
-    
-    // gyroscope
-    /*ofDrawBitmapStringHighlight("Gyroscope: (x,y,z)", 20, 175);
-    ofSetColor(0);
-    ofDrawBitmapString(ofToString(g.x,3), 20, 200 );
-    ofDrawBitmapString(ofToString(g.y,3), 120, 200 );
-    ofDrawBitmapString(ofToString(g.z,3), 220, 200 );*/
-    
-    // magnetometer
-    /*ofDrawBitmapStringHighlight("Magnetometer: (x,y,z)", 20, 225);
-    ofSetColor(0);
-    ofDrawBitmapString(ofToString(m.x,3), 20, 250);
-    ofDrawBitmapString(ofToString(m.y,3), 120, 250);
-    ofDrawBitmapString(ofToString(m.z,3), 220, 250);
-    */
+    ofSetColor(255);*/
     
     ofPushMatrix();
-    ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
+    ofTranslate(ofGetWidth()/2, ofGetHeight()/gratio);
     
-    // 2) rotate by multiplying matrix directly
-    //ofMatrix4x4 mat = coreMotion.getRotationMatrix();
-    //mat.rotate(180, 0, -1.0f, 0);
-    //ofMultMatrix(mat); // OF 0.74: glMultMatrixf(mat.getPtr());
+    ofRotateZ(-heading -90);
     
-    // 3) rotate with eulers
-    //ofRotateX( ofRadToDeg( coreMotion.getPitch() ) );
-    //ofRotateY( -ofRadToDeg( coreMotion.getRoll() ) );
-    //ofRotateZ( ofRadToDeg( coreMotion.getYaw() ) );
-    
+    ofSetColor(255,0,0);
     ofNoFill();
-	//ofDrawBox(0, 0, 0, 220);
-    //ofDrawAxis(100);
-    ofPopMatrix();
+    ofCircle(0,0, 5);
     
     ofSetColor(0);
-    float w = font.getStringBoundingBox("Go!", 0, 0).width;
-    font.drawString("Go!", ofGetWidth()/2-(w/2), ofGetHeight()-40);
+    ofFill();
     
-    /*float Speed = 1.0;     // Speed rather than velocity, as it is only the magnitude
-    float Angle = angle * RAD_TO_DEG;      // Initial angle of 30º
-    
-    ofVec3f pos = ofVec3f(0.0,0.0,0.0);  // Set the origin to (0,0)
-    ofVec3f vel = ofVec3f(0.0,0.0,0.0);
+    // drawing hack for sweden
+    // "aspec ratio"
 
-    ofPushMatrix();
     
-    float v = 0.2;
-    for(int i=0;i<10000;i++){
+    if(ActivePath != NULL) {
         
-        float x = i;
-        float y = x * tan(Angle) - (9.8 * x) / (2 * v * cos(Angle));
+        ofVec2f latlngratio = ofVec2f(1.0/0.01798, 1.0/0.031825);
+        float scaleFactor = (600) / ActivePath->radius ;
         
-        ofCircle(x/10,y/100,10);
+        
+        ofPolyline line;
+        
+    for(int i=0; i<ActivePath->legs.size(); i++) {
+        
+        ofPath path;
+        
+        for(int p=0; p<ActivePath->legs[i].points.size(); p++) {
+
+            ofVec2f newlatlng = ActivePath->legs[i].points[p].latlng*latlngratio - myLatLng*latlngratio;
+            
+            line.curveTo(newlatlng*scaleFactor);
+            ofCircle(newlatlng*scaleFactor, 5);
+        }
+        
+        line.draw();
+        
     }
-    ofPopMatrix();
-    */
-  //  float g = 9.8;
-   // float x = 0;
-   // float v = 1;
-    
-    //float y = x * tan(theta) - pow(x, 2) * g / ( 2* pow(v,2)
-    
-    //ofFill();
-    //ofDrawBitmapString(ofToString("Double tap to reset \nAttitude reference frame"), 20, ofGetHeight() - 50);
-    
-    
-	/*if(hasGPS){
-		//cout<<coreLocation->getLatitude()<<" | "<< coreLocation->getLatitude() <<endl;
-		
-		ofSetHexColor(0x009d88);
-		ofDrawBitmapString(ofToString(coreLocation->getLatitude()), 8 + 33, ofGetHeight() - 8);
 
-		ofSetHexColor(0x0f7941d);
-		ofDrawBitmapString(ofToString(coreLocation->getLongitude()), (ofGetWidth() - 108) + 33, ofGetHeight() - 8);
-		
-	}*/
+        
+    }
+    
+    ofPopMatrix();
+
+    
 }
 
 //--------------------------------------------------------------
