@@ -41,4 +41,10 @@ class ofApp : public ofxiOSApp{
         ofImage arrowImg;
         ofImage compassImg;
     
+    
+    ofTrueTypeFont font;
+    
+    float gratio;
+    
+    
 };

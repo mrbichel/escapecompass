@@ -2,8 +2,12 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+    
+    gratio = 1.61803398875;
+    
 	ofBackground(225, 225, 225);
-
+    ofEnableAntiAliasing();
+    
 	// initialize the accelerometer
 	ofxAccelerometer.setup();
     
@@ -28,6 +32,8 @@ void ofApp::setup(){
 	
 	pix = new unsigned char[ (int)( grabber.getWidth() * grabber.getHeight() * 3.0) ];
     
+    font.loadFont("Arial.ttf", 24);
+    
 }
 
 
@@ -38,7 +44,7 @@ void ofApp::update(){
     coreMotion.update();
     
     
-    grabber.update();
+    /*grabber.update();
 	
 	unsigned char * src = grabber.getPixels();
 	int totalPix = grabber.getWidth() * grabber.getHeight() * 3;
@@ -49,53 +55,133 @@ void ofApp::update(){
 		pix[k+2] = 255 - src[k+2];
 	}
 	
-	tex.loadData(pix, grabber.getWidth(), grabber.getHeight(), GL_RGB);
+	tex.loadData(pix, grabber.getWidth(), grabber.getHeight(), GL_RGB);*/
     
+}
+
+void compassbox() {
+    ofFill();
+    ofSetColor(255);
+    ofDrawBox(0, 0, 0, 20, 20, 2);
+    ofSetColor(0);
+    ofNoFill();
+    ofDrawBox(0, 0, 0, 20, 20, 2);
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+    
+    ofEnableDepthTest();
+    glEnable(GL_DEPTH_TEST);
+    
+    ofQuaternion quat = coreMotion.getQuaternion();
+    ofVec3f g = coreMotion.getGyroscopeData();
+    ofVec3f m = coreMotion.getMagnetometerData();
+    
+    // quaternion rotations
+    float angle;
+    ofVec3f axis;//(0,0,1.0f);
+    quat.getRotate(angle, axis);// rotate with quaternion
+    
+    
 	ofSetColor(100);
-    grabber.draw(0, 0);
+    //grabber.draw(0, 0);
     ofSetColor(255);
 	//tex.draw(0, 0, tex.getWidth(), tex.getHeight());
     
     //float angle = 180 - RAD_TO_DEG * atan2( ofxAccelerometer.getForce().y, ofxAccelerometer.getForce().x );
     
 	//ofDrawBitmapString("Kompass", 8, 20);
-
-	/*ofEnableAlphaBlending();
+    
+    ofSetRectMode(OF_RECTMODE_CENTER);
+    float cradius = 60;
+    ofEnableAlphaBlending();
 	ofSetColor(255);
 		ofPushMatrix();
-		ofTranslate(160, 220, 0);
+		ofTranslate(ofGetWidth()/2, ofGetHeight()-(ofGetHeight()/gratio), 0);
 		ofRotateZ(heading);
-		compassImg.draw(0,0);
+    
+        ofFill();
+    
+    ofPushMatrix();
+    ofTranslate(cradius, 0,0);
+    ofRotateZ(-heading);
+    ofRotate(angle, axis.x, -axis.y, axis.z);
+    
+    ofSetColor(0);
+    ofNoFill();
+    ofDrawBox(0, 0, 0, 21, 21, 21);
+    
+    ofFill();
+    ofSetColor(255);
+    ofDrawBox(0, 0, 0, 20, 20, 20);
+
+    ofPopMatrix();
+    
+    ofPushMatrix();
+    ofTranslate(-cradius, 0,0);
+    ofRotateZ(-heading);
+    ofRotate(angle, axis.x, -axis.y, axis.z);
+    
+    ofSetColor(0);
+    ofNoFill();
+    ofDrawBox(0, 0, 0, 21, 21, 21);
+    
+    ofFill();
+    ofSetColor(255);
+    ofDrawBox(0, 0, 0, 20, 20, 20);
+
+    ofPopMatrix();
+    
+    ofPushMatrix();
+    ofTranslate(0, cradius,0);
+    ofRotateZ(-heading);
+    ofRotate(angle, axis.x, -axis.y, axis.z);
+    
+    ofSetColor(0);
+    ofNoFill();
+    ofDrawBox(0, 0, 0, 21, 21, 21);
+    
+    ofFill();
+    ofSetColor(255);
+    ofDrawBox(0, 0, 0, 20, 20, 20);
+
+    ofPopMatrix();
+    
+    ofPushMatrix();
+    ofTranslate(0, -cradius,0);
+    ofRotateZ(-heading);
+    ofRotate(angle, axis.x, -axis.y, axis.z);
+    
+    ofSetColor(0);
+    ofNoFill();
+    ofDrawBox(0, 0, 0, 21, 21, 21);
+    
+    ofFill();
+    ofSetColor(255);
+    ofDrawBox(0, 0, 0, 20, 20, 20);
+
+    ofPopMatrix();
+    
+
 	ofPopMatrix();
 	
-	ofSetColor(255);
-	arrowImg.draw(160, 220);*/
+	//arrowImg.draw(160, 220);
+    float aw = 4;
+    ofSetColor(0);
+    
+    ofFill();
+    
+    
+    float far = ofMap(coreMotion.getPitch(), 0, PI, 100, 600);;
+    ofDrawBox(ofGetWidth()/2, ofGetHeight()-(ofGetHeight()/gratio), 0, aw, far, 2);
+    ofSetColor(255);
 
-	//ofSetColor(54);
+    
+    //ofSetColor(54);
 	//ofDrawBitmapString("LAT: ", 8, ofGetHeight() - 8);
 	//ofDrawBitmapString("LON: ", ofGetWidth() - 108, ofGetHeight() - 8);
 
-
-    // attitude- quaternion
-    //ofDrawBitmapStringHighlight("Attitude: (quaternion x,y,z,w)", 20, 25);
-    //ofSetColor(0);
-    ofQuaternion quat = coreMotion.getQuaternion();
-    /*ofDrawBitmapString(ofToString(quat.x(),3), 20, 50);
-    ofDrawBitmapString(ofToString(quat.y(),3), 90, 50);
-    ofDrawBitmapString(ofToString(quat.z(),3), 160, 50);
-    ofDrawBitmapString(ofToString(quat.w(),3), 230, 50);*/
-    
-    // attitude- roll,pitch,yaw
-    //ofDrawBitmapStringHighlight("Attitude: (roll,pitch,yaw)", 20, 75);
-    /*ofSetColor(0);
-    ofDrawBitmapString(ofToString(coreMotion.getRoll(),3), 20, 100);
-    ofDrawBitmapString(ofToString(coreMotion.getPitch(),3), 120, 100);
-    ofDrawBitmapString(ofToString(coreMotion.getYaw(),3), 220, 100);*/
-    
     // accelerometer
     ofVec3f a = coreMotion.getAccelerometerData();
     /*ofDrawBitmapStringHighlight("Accelerometer: (x,y,z)", 20, 125);
@@ -105,7 +191,6 @@ void ofApp::draw(){
     ofDrawBitmapString(ofToString(a.z,3), 220, 150);*/
     
     // gyroscope
-    ofVec3f g = coreMotion.getGyroscopeData();
     /*ofDrawBitmapStringHighlight("Gyroscope: (x,y,z)", 20, 175);
     ofSetColor(0);
     ofDrawBitmapString(ofToString(g.x,3), 20, 200 );
@@ -113,7 +198,6 @@ void ofApp::draw(){
     ofDrawBitmapString(ofToString(g.z,3), 220, 200 );*/
     
     // magnetometer
-    ofVec3f m = coreMotion.getMagnetometerData();
     /*ofDrawBitmapStringHighlight("Magnetometer: (x,y,z)", 20, 225);
     ofSetColor(0);
     ofDrawBitmapString(ofToString(m.x,3), 20, 250);
@@ -123,12 +207,6 @@ void ofApp::draw(){
     
     ofPushMatrix();
     ofTranslate(ofGetWidth()/2, ofGetHeight()/2);
-    
-    // 1) quaternion rotations
-    float angle;
-    ofVec3f axis;//(0,0,1.0f);
-    quat.getRotate(angle, axis);
-    ofRotate(angle, axis.x, -axis.y, axis.z); // rotate with quaternion
     
     // 2) rotate by multiplying matrix directly
     //ofMatrix4x4 mat = coreMotion.getRotationMatrix();
@@ -141,9 +219,37 @@ void ofApp::draw(){
     //ofRotateZ( ofRadToDeg( coreMotion.getYaw() ) );
     
     ofNoFill();
-	ofDrawBox(0, 0, 0, 220); // OF 0.74: ofBox(0, 0, 0, 220);
+	//ofDrawBox(0, 0, 0, 220);
     //ofDrawAxis(100);
     ofPopMatrix();
+    
+    ofSetColor(0);
+    float w = font.getStringBoundingBox("Go!", 0, 0).width;
+    font.drawString("Go!", ofGetWidth()/2-(w/2), ofGetHeight()-40);
+    
+    /*float Speed = 1.0;     // Speed rather than velocity, as it is only the magnitude
+    float Angle = angle * RAD_TO_DEG;      // Initial angle of 30º
+    
+    ofVec3f pos = ofVec3f(0.0,0.0,0.0);  // Set the origin to (0,0)
+    ofVec3f vel = ofVec3f(0.0,0.0,0.0);
+
+    ofPushMatrix();
+    
+    float v = 0.2;
+    for(int i=0;i<10000;i++){
+        
+        float x = i;
+        float y = x * tan(Angle) - (9.8 * x) / (2 * v * cos(Angle));
+        
+        ofCircle(x/10,y/100,10);
+    }
+    ofPopMatrix();
+    */
+  //  float g = 9.8;
+   // float x = 0;
+   // float v = 1;
+    
+    //float y = x * tan(theta) - pow(x, 2) * g / ( 2* pow(v,2)
     
     //ofFill();
     //ofDrawBitmapString(ofToString("Double tap to reset \nAttitude reference frame"), 20, ofGetHeight() - 50);
@@ -184,7 +290,6 @@ void ofApp::touchUp(ofTouchEventArgs & touch){
 //--------------------------------------------------------------
 void ofApp::touchDoubleTap(ofTouchEventArgs & touch){
     coreMotion.resetAttitude();
-
 }
 
 //--------------------------------------------------------------
