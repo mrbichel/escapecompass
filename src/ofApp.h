@@ -5,9 +5,7 @@
 #include "ofxiOSExtras.h"
 #include "ofxCoreMotion.h"
 #include "ofxJSONElement.h"
-
-
-//enum TRANSPORT_TYPE = {}
+#include "ofxBiquadFilter.h"
 
 struct PPoint {
     ofVec2f pos;
@@ -18,14 +16,18 @@ struct PPoint {
 
 struct PPathLeg {
     vector<PPoint> points;
+    string mode;
 };
 
 class PPath {
 public:
     vector<PPathLeg> legs;
     int duration;
-    
     float radius;
+    
+    float heading;
+    float opacity;
+    ofPath path;
     
 };
 
@@ -52,17 +54,16 @@ class ofApp : public ofxiOSApp{
     
         ofxCoreMotion coreMotion;
         ofxiOSCoreLocation * coreLocation;
-    
-        ofVideoGrabber grabber;
-        ofTexture tex;
-        unsigned char * pix;
-    
-        float heading;
+
+        float heading, heading2;
         bool hasCompass;
         bool hasGPS;
 	
-        ofImage arrowImg;
-        ofImage compassImg;
+    ofImage overlay;
+    ofImage overlayRotate;
+    ofImage center;
+    ofImage slides[6];
+    int slide;
     
     ofVec2f myLatLng;
     
@@ -79,6 +80,17 @@ class ofApp : public ofxiOSApp{
     int pathHistory = 10;
     
     vector<PPath*>  paths;
+    vector<PPath*> backgroundPaths;
+    
     PPath * ActivePath;
+    
+    ofxBiquadFilter1f headingFiltered;
+    ofxBiquadFilter1f headingFiltered2;
+    
+    
+    bool hasBacground;
+    
+    string firstStation;
+    string firstTransportName;
     
 };
